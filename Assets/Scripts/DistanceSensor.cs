@@ -4,6 +4,7 @@ using UnityEngine;
 
 public class DistanceSensor : MonoBehaviour
 {
+    public float length = 3f;
     private float distance;
     private Vector3 targetPoint;
     private bool debugMode = true;
@@ -25,6 +26,7 @@ public class DistanceSensor : MonoBehaviour
         lineRenderer.material = yellowMat;
         lineRenderer.startWidth = 0.2f;
         lineRenderer.endWidth = 0.2f;
+        lineRenderer.enabled = true;
 
         yellowMat = new Material(Shader.Find("Unlit/Color"));
         greenMat = new Material(Shader.Find("Unlit/Color"));
@@ -34,40 +36,37 @@ public class DistanceSensor : MonoBehaviour
         redMat.color = Color.red;
     }
 
+    public float GetNormalizedValue()
+    {
+        return distance / length;
+    }
+
     public void UpdatePosition()
     {
 
         Vector3 forward = (transform.position + transform.forward) - transform.position;
         forward.y = 0; // always straight forward, ignore suspension car torque
-        if (Physics.Raycast(transform.position, forward, out hit, 2000f))
+        if (Physics.Raycast(transform.position, forward, out hit, length))
         {
-            lineRenderer.enabled = true;
-            targetPoint = hit.point;
-            distance = Vector3.Distance(transform.position, targetPoint);
-            
+            distance = Vector3.Distance(transform.position, hit.point);
         }
         else
         {
-            lineRenderer.enabled = false;
-            distance = 2000f;
+            distance = length;
         }
 
 
         if (DebugMode)
         {
             positions[0] = transform.position;
-            positions[1] = targetPoint;
+            positions[1] = transform.position + forward.normalized * length;
             lineRenderer.SetPositions(positions);
 
-            if (distance > 30f)
+            if (distance == length)
             {
                 lineRenderer.material = greenMat;
             }
-            if (distance <= 30 && distance > 15)
-            {
-                lineRenderer.material = yellowMat;
-            }
-            if (distance <= 15 && distance > 0)
+            else
             {
                 lineRenderer.material = redMat;
             }

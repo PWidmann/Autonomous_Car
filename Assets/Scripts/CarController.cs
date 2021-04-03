@@ -20,19 +20,26 @@ public struct Wheel
 
 public class CarController : MonoBehaviour
 {
-    [SerializeField] private float maxAcceleration = 20.0f;
-    [SerializeField] private float turnSensitivity = 0.3f;
-    [SerializeField] private float maxSteerAngle = 45.0f;
-    [SerializeField] private List<Wheel> wheels;
+    
+    [SerializeField] public float maxMotorTorque = 20.0f;
+    [SerializeField] public float maxVelocity = 20.0f;
+    [SerializeField] public float maxBrakePower = 20.0f;
+    [SerializeField] public float maxSteerAngle = 60.0f;
+
+    [SerializeField] public List<Wheel> wheels;
     [SerializeField] private Vector3 centerOfMass;
     [SerializeField] GameObject brakeLight;
     [SerializeField] Material brakeLightMaterial;
 
+    
+
     private float inputX, inputY;
     private Rigidbody rb;
     private bool isBraking = false;
-
+    private float velocity = 0f;
     public bool IsBraking { get => isBraking; set => isBraking = value; }
+    public float Velocity { get => velocity; set => velocity = value; }
+    public float MaxVelocity { get => maxVelocity; set => maxVelocity = value; }
 
     private void Start()
     {
@@ -45,15 +52,11 @@ public class CarController : MonoBehaviour
     {
         AnimateWheels();
         GetInputs();
-
-        GameInterface.Instance.SetSpeedText(GetMotorRPM());
     }
 
     private void FixedUpdate()
     {
-        //Move();
-        //Turn();
-        //HandBrake();
+        velocity = rb.velocity.magnitude;
     }
 
     private void GetInputs()
@@ -62,90 +65,40 @@ public class CarController : MonoBehaviour
         inputY = Input.GetAxis("Vertical");
     }
 
-    public float GetMotorRPM()
-    {
-        return wheels[0].collider.rpm;
-    }
+    //
+    // Autopilot movement
+    //
 
-    public float GetMotorTorque()
-    {
-        return wheels[0].collider.motorTorque;
-    }
-
-    private void Move()
-    {
-        foreach (var wheel in wheels)
-        {
-            //if(wheel.axel == Axel.Back)
-                wheel.collider.motorTorque = inputY * maxAcceleration * 2500 * Time.fixedDeltaTime;
-        }
-    }
-
-    private void Turn()
-    {
-        foreach (var wheel in wheels)
-        {
-            if (wheel.axel == Axel.Front)
-            {
-                var steerAngle = inputX * turnSensitivity * maxSteerAngle;
-
-                wheel.collider.steerAngle = Mathf.Lerp(wheel.collider.steerAngle, steerAngle, 0.5f);
-            }
-        }
-    }
-
-    
-
-    private void HandBrake()
-    {
-        float breakPower = 0;
-        IsBraking = false;
-
-        if (Input.GetKey(KeyCode.Space))
-        {
-            brakeLightMaterial.EnableKeyword("_EMISSION");
-
-            breakPower = 1000f;
-            IsBraking = true;
-        }
-        else
-        {
-            brakeLightMaterial.DisableKeyword("_EMISSION");
-        }
-
-        foreach (var wheel in wheels)
-        {
-            //if (wheel.axel == Axel.Back)
-                wheel.collider.brakeTorque = breakPower;
-        }
-
-        brakeLight.SetActive(IsBraking);
-    }
-
+    /// <summary>
+    /// Needs input beween 0 and 1. 1 is maximum power.
+    /// </summary>
+    /// <param name="_input"></param>
     public void AutoPilotMotorTorque(float _input)
     {
         foreach (var wheel in wheels)
         {
-            wheel.collider.motorTorque = _input * 15f;
+            wheel.collider.motorTorque = _input * maxVelocity * maxMotorTorque;
         }
     }
 
-    public void AutoPilotSteer(float _angle)
+    /// <summary>
+    /// Needs input beween -1(steering left) and 1(steering right).
+    /// </summary>
+    /// <param name="_input"></param>
+    public void AutoPilotSteer(float _steerAmount)
     {
         foreach (var wheel in wheels)
         {
             if (wheel.axel == Axel.Front)
             {
-                float cappedAngle = _angle;
-
-                if (cappedAngle > maxSteerAngle)
-                    cappedAngle = maxSteerAngle;
-
-                wheel.collider.steerAngle = Mathf.Lerp(wheel.collider.steerAngle, cappedAngle, 0.05f);
+                wheel.collider.steerAngle = _steerAmount * maxSteerAngle;
             }
         }
     }
-
+    /// <summary>
+    /// Needs input beween 0 and 1. 1 is maximum power.
+    /// </summary>
+    /// <param name="_input"></param>
     public void AutopilotBrake(float _brakePower)
     {
         if (_brakePower > 0)
@@ -163,7 +116,7 @@ public class CarController : MonoBehaviour
 
         foreach (var wheel in wheels)
         {
-            wheel.collider.brakeTorque = _brakePower;
+            wheel.collider.brakeTorque = _brakePower * maxBrakePower;
         } 
     }
 
