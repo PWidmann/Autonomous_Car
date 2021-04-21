@@ -14,6 +14,27 @@ public class Network {
 		return 1 / (1 + Mathf.Exp(-(float)x));
     }
 
+	double ReLU(float s)
+	{
+		//leaky relu to prevent
+		//dying of the neurons
+		float leakyReLU = Mathf.Max(0.001f * s, s);
+		return Mathf.Clamp((leakyReLU), -1, 1);
+	}
+
+	float eLU(float s)
+	{
+		//if (s > 0) return s;
+		return Mathf.Clamp(0.3f * (Mathf.Exp(s) - 1), -1, 1) / 10f;
+	}
+
+	float SoftSign(float s)
+	{
+		float product = s / (1 + Mathf.Abs(s));
+		return Mathf.Clamp(product, -1, 1);
+	}
+
+
 	void initializeVariables()
 	{
 		this.weights = new double[parameters.Length - 1][][];
@@ -22,7 +43,6 @@ public class Network {
 
 	public Network(Network Dad, Network Mom)
 	{
-		
 		this.parameters = Mom.parameters;
 		initializeVariables ();
 
@@ -46,7 +66,6 @@ public class Network {
 			}
 		}
 
-
 		int mutationLayer = Random.Range(0, weights.Length);
 		int mutationLeft  = Random.Range(0, weights[mutationLayer].Length);
 		int mutationRight = Random.Range(0, weights[mutationLayer][mutationLeft].Length);
@@ -54,7 +73,6 @@ public class Network {
 		weights [mutationLayer] [mutationLeft] [mutationRight] = getRandomWeight ();
 		//Debug.Log (mutationLayer + " " + mutationLeft + " " + mutationRight);
 	}
-			
 
 	public Network(int [] parameters)
 	{
@@ -75,10 +93,7 @@ public class Network {
 				for (int k = 0; k < parameters [i + 1]; k++) {
 				
 					weights [i] [j] [k] = getRandomWeight ();
-					//a++;
-					//Debug.Log (a);
 				}
-
 			}
 		}
 
@@ -102,14 +117,12 @@ public class Network {
 			//output values, they all start at 0 by default, checked that in C# Documentation ;)
 			outputs = new double[parameters [i+1]];
 
-
 			//for each input neuron
 			for (int j = 0; j < inputs.Length; j++) {
 			
 				//and for each output neuron
 				for (int k = 0; k < outputs.Length; k++) {
-					//Debug.Log (i + " " + j + " " + k);
-					//a++;
+
 					//increase the load of an output neuron by the value of each input neuron multiplied by the weight between them
 					outputs [k] += inputs [j] * weights [i] [j] [k];
 				}
@@ -121,24 +134,11 @@ public class Network {
 			//after all output neurons have their values summed up, apply the activation function and save the value into new inputs
 			for (int l = 0; l < outputs.Length; l++) {
 				inputs [l] = sigmoid(outputs [l] * 5);
-				//Debug.Log ("i " + inputs [l]);
+				//inputs[l] = (float)ReLU((float)outputs[l] * 5);
+				//inputs[l] = eLU((float)outputs[l] * -5);
 			}
-
-
-
 		}
-
-		//Debug.Log (a);
-
 		return inputs;
-
-		
-		// inputy to wartości odległości z czujników (0-1), są 3 (na razie)
-
-		//outputy to wartości do sterowania (zakręt i silnik), są 2
-
-		//old way of processing, not working
-		//return processRecurrent (inputs, 0);
 	}
 
 	//	this is DEPRECATED
@@ -169,6 +169,8 @@ public class Network {
 
 		for (int i = 0; i < parameters [layer]; i++) {
 			outputs [i] = sigmoid(outputs[i]);
+			//outputs[i] = (float)ReLU((float)outputs[i] * 5);
+			//outputs[i] = eLU((float)outputs[i] * -5);
 		}
 
 		return processRecurrent (outputs, layer);
@@ -177,7 +179,7 @@ public class Network {
 
 	double getRandomWeight()
     {
-		return Random.Range(-1.0f, 1.0f);              
-    }
+		return Random.Range(-1.0f, 1.0f);
+	}
 
 }

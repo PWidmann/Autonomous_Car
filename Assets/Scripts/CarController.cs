@@ -106,18 +106,25 @@ public class CarController : MonoBehaviour
             brakeLightMaterial.EnableKeyword("_EMISSION");
             brakeLight.SetActive(true);
             IsBraking = true;
+
+            foreach (var wheel in wheels)
+            {
+                wheel.collider.brakeTorque = _brakePower * maxBrakePower;
+            }
         }
         else
         {
             brakeLightMaterial.DisableKeyword("_EMISSION");
             brakeLight.SetActive(false);
             IsBraking = false;
+
+            foreach (var wheel in wheels)
+            {
+                wheel.collider.brakeTorque = 0;
+            }
         }
 
-        foreach (var wheel in wheels)
-        {
-            wheel.collider.brakeTorque = _brakePower * maxBrakePower;
-        } 
+        
     }
 
     private void AnimateWheels()
@@ -131,5 +138,10 @@ public class CarController : MonoBehaviour
             wheel.model.transform.position = pos;
             wheel.model.transform.rotation = rot;
         }
+    }
+
+    public float GetRPM()
+    {
+        return wheels[0].collider.rpm;
     }
 }

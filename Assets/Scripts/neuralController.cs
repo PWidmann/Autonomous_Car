@@ -9,10 +9,9 @@ public enum FitnessMeasure{
 }
 	
 
-public class neuralController : MonoBehaviour 
+public class NeuralController : MonoBehaviour 
 {
-
-	Rigidbody rigidbody;
+    new Rigidbody rigidbody;
 	CarController carController;
 	SteeringBehavior steeringBehavior;
 
@@ -39,9 +38,13 @@ public class neuralController : MonoBehaviour
 
 	Vector3 startPosition;
 	Quaternion startRotation;
+	int heavyImpacts = 0;
+	float brakingPoints = 1;
 
+	public int[] layers;
 
 	Network [] networks; // Genotypen -> gespeicherte gewichtungen
+	public Network currentNeuralNet;
 	RaycastHit hit;
 
 	Vector3 position;
@@ -49,7 +52,7 @@ public class neuralController : MonoBehaviour
     // Use this for initialization
     void Start()
     {
-		int[] parameters = { 3, 8, 2 }; // 3 input, 1 hidden layer with 5 neurons, 2 outputs
+		//parameters = { 4, 6, 6, 2 }; // 4 input, 1 hidden layer with 10 neurons, 3 outputs
 		staticPopulation = population;
 
         Time.timeScale = timeScale;
@@ -71,7 +74,7 @@ public class neuralController : MonoBehaviour
 
         for (int i = 0; i < population; i++)
         {
-			networks[i] = new Network(parameters);
+			networks[i] = new Network(layers);
         }
 
     }
@@ -80,22 +83,25 @@ public class neuralController : MonoBehaviour
 	{
 		sensors = steeringBehavior.GetSensorValues();
 
-
 		results = networks[currentNeuralNetwork].process(sensors);
-		steering =((double) results [0] - 0.5f);
-		motor = (double) results [1];
+		steering =((double)results [0] - 0.5f);
+		motor = (double)results [1];
+		//braking = (double)results[2] - 0.5f;
 
 		driveTime += Time.deltaTime;
 
 		points[currentNeuralNetwork] += Vector3.Distance(position, transform.position);
 		position = transform.position;
-
+		currentNeuralNet = networks[currentNeuralNetwork];
 	}
 	
 	// Update is called once per frame
 	void Update () {
         
 		Time.timeScale = timeScale;
+
+		//if (sensors[1] < 0.15f && results[2] > 0 && sensors[3] > 0.15f)
+		//	brakingPoints += Time.deltaTime;
         
 		//check if the network is moving
 		if(driveTime > 3 && rigidbody.velocity.magnitude<0.005)
@@ -104,105 +110,117 @@ public class neuralController : MonoBehaviour
             OnCollisionEnter(null);
         }
 
-		if (driveTime > 60f)
+		// Next population after driving for 60s
+		if (driveTime > 60f && steeringBehavior.steeringMode == SteeringBehavior.SteeringMode.NeuralNet)
 		{
 			OnCollisionEnter(null);
 		}
 
 	}
 
-
 	//game over, friend :/
 	void OnCollisionEnter (Collision col)
 	{
-		//Debug.Log ("end!");
-        resetCarPosition();
-
-		switch(fitnessMeasure)
+		if (results[1] > 0.3f) // If there is an impact while high motor torque
 		{
-		case FitnessMeasure.distance2byTime:
-			points [currentNeuralNetwork] *= points [currentNeuralNetwork];
-			points [currentNeuralNetwork] /= driveTime;
-			break;
-		case FitnessMeasure.distanceByTime:
-			points [currentNeuralNetwork] /= driveTime;
-			break;
-		default:
-			break;
+			heavyImpacts = 3;
 		}
 
+		//Debug.Log ("end!");
+		resetCarPosition();
+
+		switch (fitnessMeasure)
+		{
+			case FitnessMeasure.distance2byTime:
+				points[currentNeuralNetwork] *= points[currentNeuralNetwork];
+				points[currentNeuralNetwork] /= driveTime;
+				if (heavyImpacts != 0)
+					points[currentNeuralNetwork] /= heavyImpacts;
+				if (brakingPoints != 0)
+					points[currentNeuralNetwork] *= brakingPoints;
+				break;
+			case FitnessMeasure.distanceByTime:
+				points[currentNeuralNetwork] /= driveTime;
+				break;
+			default:
+				break;
+		}
+
+		heavyImpacts = 0;
+		brakingPoints = 1;
 		driveTime = 0;
 
-        //Debug.Log("network " + currentNeuralNetwork + " scored " + points[currentNeuralNetwork]);
+		//Debug.Log("network " + currentNeuralNetwork + " scored " + points[currentNeuralNetwork]);
 
 
 		//now we reproduce
-        if(currentNeuralNetwork == population-1)
-        {
-        double maxValue = points[0];
-        int maxIndex = 0;
+		if (currentNeuralNetwork == population - 1)
+		{
+			double maxValue = points[0];
+			int maxIndex = 0;
 
-		//looking for the two best networks in the generation
+			//looking for the two best networks in the generation
 
-        for(int i = 1; i < population; i++)
-        {
-            if (points[i] > maxValue)
-            {
-                maxIndex = i;
-                maxValue = points[i];
-            }
-        }
-
-        Debug.Log("first parent is " + maxIndex);
-
-			if (points [maxIndex] > bestDistance) {
-			
-				bestDistance = (float)points [maxIndex];
-			
+			for (int i = 1; i < population; i++)
+			{
+				if (points[i] > maxValue)
+				{
+					maxIndex = i;
+					maxValue = points[i];
+				}
 			}
 
-            points[maxIndex] = -10;
+			Debug.Log("first parent is " + maxIndex);
 
-            Network mother = networks[maxIndex];
+			if (points[maxIndex] > bestDistance)
+			{
 
+				bestDistance = (float)points[maxIndex];
 
-            maxValue = points[0];
-            maxIndex = 0;
+			}
 
-            for (int i = 1; i < population; i++)
-            {
-                if (points[i] > maxValue)
-                {
-                    maxIndex = i;
-                    maxValue = points[i];
-                }
-            }
+			points[maxIndex] = -10;
 
-            Debug.Log("second parent is " + maxIndex);
-
-            points[maxIndex] = -10;
-
-            Network father = networks[maxIndex];
+			Network mother = networks[maxIndex];
 
 
-            for(int i = 0; i < population; i++)
-            {
-                points[i] = 0;
+			maxValue = points[0];
+			maxIndex = 0;
+
+			for (int i = 1; i < population; i++)
+			{
+				if (points[i] > maxValue)
+				{
+					maxIndex = i;
+					maxValue = points[i];
+				}
+			}
+
+			Debug.Log("second parent is " + maxIndex);
+
+			points[maxIndex] = -10;
+
+			Network father = networks[maxIndex];
+
+
+			for (int i = 0; i < population; i++)
+			{
+				points[i] = 0;
 				//creating new generation of networks with random combinations of genes from two best parents
-                networks[i] = new Network(father, mother);
-            }
+				networks[i] = new Network(father, mother);
+			}
 
-            generation++;
-            Debug.Log("generation " + generation +" is born");
+			generation++;
+			Debug.Log("generation " + generation + " is born");
 
 			//because we increment it at the beginning, that's why -1
-            currentNeuralNetwork = -1;
-        }
+			currentNeuralNetwork = -1;
+		}
 
-        currentNeuralNetwork++;
+		currentNeuralNetwork++;
 
 		//position reset is pretty important, don't forget it :*
-        position = transform.position;
+		position = transform.position;
 	}
 
 	//TODO: sometimes the velocity is not reseted.. for some reason
@@ -212,6 +230,7 @@ public class neuralController : MonoBehaviour
 		rigidbody.angularVelocity = Vector3.zero;
 		transform.position = startPosition;
         transform.rotation = startRotation;
+		steeringBehavior.currentWayPoint = 0;
     }
 }
 
