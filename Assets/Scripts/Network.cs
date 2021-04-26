@@ -6,7 +6,7 @@ public class Network {
 
 	public double [][][] weights;
 	public double[][] neuronOutputs;
-	public int [] parameters;
+	public int [] layers;
 
 	public int lenght;
 
@@ -38,30 +38,30 @@ public class Network {
 
 	void initializeVariables()
 	{
-		this.weights = new double[parameters.Length - 1][][];
-		this.lenght = parameters.Length;
+		this.weights = new double[layers.Length - 1][][];
+		this.lenght = layers.Length;
 	}
 
 	public Network(Network Dad, Network Mom)
 	{
-		this.parameters = Mom.parameters;
+		this.layers = Mom.layers;
 		initializeVariables ();
 
-		for (int i = 0; i < parameters.Length - 1; i++) { // layers
+		for (int l = 0; l < layers.Length - 1; l++) { // layers
 
-			weights [i] = new double[parameters [i]][];
+			weights [l] = new double[layers [l]][];
 
-			for (int j = 0; j < parameters [i]; j++) { // neurons
+			for (int n = 0; n < layers [l]; n++) { // neurons
 
-				weights [i] [j] = new double[parameters [i + 1]];
+				weights [l] [n] = new double[layers [l + 1]];
 
-				for (int k = 0; k < parameters [i + 1]; k++) { // connections
+				for (int c = 0; c < layers [l + 1]; c++) { // connections
 
 					// crossing
 					if (Random.Range (0, 2) == 0) {
-						weights [i] [j] [k] = Mom.weights [i] [j] [k];
+						weights [l] [n] [c] = Mom.weights [l] [n] [c];
 					} else {
-						weights [i] [j] [k] = Dad.weights [i] [j] [k];		
+						weights [l] [n] [c] = Dad.weights [l] [n] [c];		
 					}
 				}
 			}
@@ -78,23 +78,23 @@ public class Network {
 		weights [mutationLayer] [mutationNeuron] [mutationConnection] = getRandomWeight ();
 	}
 
-	public Network(int [] parameters)
+	public Network(int [] _layers)
 	{
-		this.parameters = parameters;
+		this.layers = _layers;
 
 		initializeVariables ();
 
-		for (int i = 0; i < parameters.Length - 1 ; i++) {
+		for (int l = 0; l < _layers.Length - 1 ; l++) { // layers
 			
-			weights[i] = new double[parameters[i]][];
+			weights[l] = new double[_layers[l]][];
 
-			for (int j = 0; j < parameters [i]; j++) {
+			for (int n = 0; n < _layers [l]; n++) { // Neurons
 				
-				weights[i][j] =  new double[parameters[i+1]];
+				weights[l][n] =  new double[_layers[l+1]];
 
-				for (int k = 0; k < parameters [i + 1]; k++) {
+				for (int c = 0; c < _layers [l + 1]; c++) { // connections weight
 				
-					weights [i] [j] [k] = getRandomWeight ();
+					weights [l] [n] [c] = getRandomWeight ();
 				}
 			}
 		}
@@ -105,7 +105,7 @@ public class Network {
 	{
 		//int a = 0;
 		
-		if (inputs.Length != parameters [0]) {
+		if (inputs.Length != layers [0]) {
 		
 			Debug.Log ("wrong input lenght!");
 			return null;
@@ -117,7 +117,7 @@ public class Network {
 		for (int i = 0; i < (lenght-1); i++) {
 			
 			//output values, they all start at 0 by default, checked that in C# Documentation ;)
-			outputs = new double[parameters [i+1]];
+			outputs = new double[layers [i+1]];
 
 			//for each input neuron
 			for (int j = 0; j < inputs.Length; j++) {
@@ -152,20 +152,20 @@ public class Network {
 	//	this is DEPRECATED
 	public double [] processRecurrent(double [] inputs, int layer)
 	{
-		if (layer == parameters.Length -1 ) {
+		if (layer == layers.Length -1 ) {
 			//Debug.Log (layer);
 			return inputs;
 		}
 
 		layer++;
 
-		double [] outputs = new double[parameters[layer]];
+		double [] outputs = new double[layers[layer]];
 	
-		for (int i = 0; i < parameters [layer]; i++) {
+		for (int i = 0; i < layers [layer]; i++) {
 			outputs [i] = 0;
 		}
 
-		for (int i = 0; i < parameters[layer] ; i++) {
+		for (int i = 0; i < layers[layer] ; i++) {
 
 			for (int j = 0; j < inputs.Length; j++) {
 				
@@ -174,7 +174,7 @@ public class Network {
 			}
 		}
 
-		for (int i = 0; i < parameters [layer]; i++) {
+		for (int i = 0; i < layers [layer]; i++) {
 			outputs [i] = sigmoid(outputs[i]);
 			//outputs[i] = (float)ReLU((float)outputs[i] * 5);
 			//outputs[i] = eLU((float)outputs[i] * -5);

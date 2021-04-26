@@ -17,13 +17,13 @@ public class NNVisualization : MonoBehaviour
     void Update()
     {
         Network currentNet = neuralController.currentNeuralNet;
-        int inputNeurons = currentNet.parameters[0];
+        int inputNeurons = currentNet.layers[0];
         Debug.Log("Inputneurons: " + inputNeurons);
 
-        int hiddenlayers = currentNet.parameters.Length - 2;
+        int hiddenlayers = currentNet.layers.Length - 2;
         Debug.Log("Hiddenlayers: " + hiddenlayers);
 
-        int outputNeurons = currentNet.parameters[currentNet.parameters.Length -1];
+        int outputNeurons = currentNet.layers[currentNet.layers.Length -1];
         Debug.Log("Outputneurons: " + outputNeurons);
     }
 }
