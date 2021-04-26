@@ -19,6 +19,7 @@ public class NeuralController : MonoBehaviour
 	public FitnessMeasure fitnessMeasure;
 
     public int timeScale;
+	public float mutationPercent = 0.1f;
 
 	public int population;
 	public static int staticPopulation;
@@ -45,6 +46,7 @@ public class NeuralController : MonoBehaviour
 
 	Network [] networks; // Genotypen -> gespeicherte gewichtungen
 	public Network currentNeuralNet;
+	public Network bestNeuralNet;
 	RaycastHit hit;
 
 	Vector3 position;
@@ -182,6 +184,8 @@ public class NeuralController : MonoBehaviour
 			points[maxIndex] = -10;
 
 			Network mother = networks[maxIndex];
+
+			//Set best current Network
 
 
 			maxValue = points[0];

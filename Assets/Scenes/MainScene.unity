@@ -22384,7 +22384,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   autoPilotOn: 1
-  steeringMode: 0
+  steeringMode: 1
   classicAIMode: 1
   middleSensor: {fileID: 1539950554}
   leftSensor: {fileID: 888277230}
@@ -22406,6 +22406,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   fitnessMeasure: 1
   timeScale: 1
+  mutationPercent: 0.1
   population: 16
   driveTime: 0
   points: []

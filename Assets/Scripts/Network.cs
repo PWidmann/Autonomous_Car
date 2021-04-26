@@ -5,6 +5,7 @@ using UnityEngine;
 public class Network {
 
 	public double [][][] weights;
+	public double[][] neuronOutputs;
 	public int [] parameters;
 
 	public int lenght;
@@ -66,19 +67,20 @@ public class Network {
 			}
 		}
 
-		int mutationLayer = Random.Range(0, weights.Length);
-		int mutationLeft  = Random.Range(0, weights[mutationLayer].Length);
-		int mutationRight = Random.Range(0, weights[mutationLayer][mutationLeft].Length);
+		// Mutation
 
-		weights [mutationLayer] [mutationLeft] [mutationRight] = getRandomWeight ();
-		//Debug.Log (mutationLayer + " " + mutationLeft + " " + mutationRight);
+		// wieviele gewichte
+
+		int mutationLayer = Random.Range(0, weights.Length);
+		int mutationNeuron  = Random.Range(0, weights[mutationLayer].Length);
+		int mutationConnection = Random.Range(0, weights[mutationLayer][mutationNeuron].Length);
+
+		weights [mutationLayer] [mutationNeuron] [mutationConnection] = getRandomWeight ();
 	}
 
 	public Network(int [] parameters)
 	{
 		this.parameters = parameters;
-		//int a = 0;
-		//{3,5,2}
 
 		initializeVariables ();
 
@@ -119,13 +121,17 @@ public class Network {
 
 			//for each input neuron
 			for (int j = 0; j < inputs.Length; j++) {
-			
+
+				
+
 				//and for each output neuron
 				for (int k = 0; k < outputs.Length; k++) {
 
 					//increase the load of an output neuron by the value of each input neuron multiplied by the weight between them
 					outputs [k] += inputs [j] * weights [i] [j] [k];
 				}
+
+				
 			}
 
 			//we have the proper output values, now we have to use them as inputs to the next layer and so on, until we hit the last layer
@@ -136,6 +142,8 @@ public class Network {
 				inputs [l] = sigmoid(outputs [l] * 5);
 				//inputs[l] = (float)ReLU((float)outputs[l] * 5);
 				//inputs[l] = eLU((float)outputs[l] * -5);
+
+				//neuronOutputs[i][l] = inputs[l];
 			}
 		}
 		return inputs;
@@ -164,7 +172,6 @@ public class Network {
 				outputs [i] += inputs [j] * weights [layer - 1] [j] [i];
 
 			}
-				
 		}
 
 		for (int i = 0; i < parameters [layer]; i++) {

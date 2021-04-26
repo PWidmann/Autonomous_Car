@@ -23,7 +23,7 @@ public class NNVisualization : MonoBehaviour
         int hiddenlayers = currentNet.parameters.Length - 2;
         Debug.Log("Hiddenlayers: " + hiddenlayers);
 
-        int outputNeurons = currentNet.parameters[currentNet.parameters.Length];
+        int outputNeurons = currentNet.parameters[currentNet.parameters.Length -1];
         Debug.Log("Outputneurons: " + outputNeurons);
     }
 }
