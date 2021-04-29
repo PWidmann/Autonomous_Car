@@ -75,9 +75,13 @@ public class CarController : MonoBehaviour
     /// <param name="_input"></param>
     public void AutoPilotMotorTorque(float _input)
     {
+
         foreach (var wheel in wheels)
         {
-            wheel.collider.motorTorque = _input * maxVelocity * maxMotorTorque;
+            if(velocity * 3.6 < 110f)
+                wheel.collider.motorTorque = _input * maxVelocity * maxMotorTorque;
+            else
+                wheel.collider.motorTorque = 0;
         }
     }
 
@@ -87,6 +91,12 @@ public class CarController : MonoBehaviour
     /// <param name="_input"></param>
     public void AutoPilotSteer(float _steerAmount)
     {
+        if (_steerAmount < -1)
+            _steerAmount = -1;
+
+        if (_steerAmount > 1)
+            _steerAmount = 1;
+
         foreach (var wheel in wheels)
         {
             if (wheel.axel == Axel.Front)
@@ -94,6 +104,7 @@ public class CarController : MonoBehaviour
                 wheel.collider.steerAngle = _steerAmount * maxSteerAngle;
             }
         }
+        
     }
     /// <summary>
     /// Needs input beween 0 and 1. 1 is maximum power.

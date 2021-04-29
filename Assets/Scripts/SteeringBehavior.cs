@@ -88,7 +88,7 @@ public class SteeringBehavior : MonoBehaviour
         float motorTorque = (float)NeuralController.motor + 0.1f;
         float steering = (float)NeuralController.steering;
         //float braking = (float)neuralController.braking;
-
+        
         carController.AutoPilotMotorTorque(motorTorque);
         carController.AutoPilotSteer(steering);
         //carController.AutopilotBrake(braking);

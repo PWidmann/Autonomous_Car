@@ -22351,7 +22351,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: aa7bfb85c1eaea549ad154d5c281dbc2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxMotorTorque: 100
+  maxMotorTorque: 80
   maxVelocity: 20
   maxBrakePower: 400
   maxSteerAngle: 45
@@ -22385,7 +22385,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   autoPilotOn: 1
   steeringMode: 1
-  classicAIMode: 1
+  classicAIMode: 0
   middleSensor: {fileID: 1539950554}
   leftSensor: {fileID: 888277230}
   rightSensor: {fileID: 1046461173}
@@ -22405,13 +22405,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   fitnessMeasure: 1
-  timeScale: 1
+  timeScale: 2
   mutationPercent: 0.1
   population: 16
   driveTime: 0
   points: []
   results: []
-  layers: 040000000800000002000000
+  layers: 0400000006000000060000000600000002000000
 --- !u!23 &7140765250250989757
 MeshRenderer:
   m_ObjectHideFlags: 0

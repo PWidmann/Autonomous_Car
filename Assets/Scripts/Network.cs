@@ -4,189 +4,120 @@ using UnityEngine;
 
 public class Network {
 
-	public double [][][] weights;
-	public double[][] neuronOutputs;
-	public int [] layers;
+	public Layer[] layers; // layers without input layer
+	double[] output; 
 
-	public int lenght;
-
-    double sigmoid(double x)
-    {
-		return 1 / (1 + Mathf.Exp(-(float)x));
-    }
-
-	double ReLU(float s)
+	public Network(int [] _layers)
 	{
-		//leaky relu to prevent
-		//dying of the neurons
-		float leakyReLU = Mathf.Max(0.001f * s, s);
-		return Mathf.Clamp((leakyReLU), -1, 1);
-	}
+		layers = new Layer[_layers.Length -1]; // without input layer
+		output = new double[_layers[layers.Length]];
 
-	float eLU(float s)
-	{
-		//if (s > 0) return s;
-		return Mathf.Clamp(0.3f * (Mathf.Exp(s) - 1), -1, 1) / 10f;
-	}
+		for (int l = 0; l < layers.Length; l++)
+		{
+			// if first hidden layer -> input count from sensors
+			if(l == 0)
+				layers[l] = new Layer(_layers[1], _layers[0]);
+			else
+				layers[l] = new Layer(_layers[l + 1], _layers[l]);
+		}
 
-	float SoftSign(float s)
-	{
-		float product = s / (1 + Mathf.Abs(s));
-		return Mathf.Clamp(product, -1, 1);
-	}
-
-
-	void initializeVariables()
-	{
-		this.weights = new double[layers.Length - 1][][];
-		this.lenght = layers.Length;
+		Debug.Log("Network creation layers: " + layers.Length);
 	}
 
 	public Network(Network Dad, Network Mom)
 	{
-		this.layers = Mom.layers;
-		initializeVariables ();
 
-		for (int l = 0; l < layers.Length - 1; l++) { // layers
+		int[] childLayers = new int[Mom.layers.Length + 1];
+		childLayers[0] = 4;
+		for (int i = 1; i < childLayers.Length; i++)
+		{
+			childLayers[i] = Mom.layers[i-1].neurons.Length;
+		}
 
-			weights [l] = new double[layers [l]][];
+		layers = new Layer[childLayers.Length - 1];
+		output = new double[childLayers[layers.Length]];
 
-			for (int n = 0; n < layers [l]; n++) { // neurons
+		for (int l = 0; l < layers.Length; l++)
+		{
+			// if first hidden layer -> input count from sensors
+			if (l == 0)
+				layers[l] = new Layer(childLayers[1], childLayers[0]);
+			else
+				layers[l] = new Layer(childLayers[l + 1], childLayers[l]);
+		}
 
-				weights [l] [n] = new double[layers [l + 1]];
-
-				for (int c = 0; c < layers [l + 1]; c++) { // connections
-
-					// crossing
-					if (Random.Range (0, 2) == 0) {
-						weights [l] [n] [c] = Mom.weights [l] [n] [c];
-					} else {
-						weights [l] [n] [c] = Dad.weights [l] [n] [c];		
+		for (int l = 0; l < layers.Length; l++) // for every layer
+		{
+			for (int n = 0; n < layers[l].neurons.Length; n++) // for every neuron
+			{
+				for (int w = 0; w < layers[l].neurons[n].weights.Length; w++) // for every weight
+				{
+					// random weight crossing
+					if (Random.Range(0, 2) == 0)
+					{
+						layers[l].neurons[n].weights[w] = Mom.layers[l].neurons[n].weights[w];
+					}
+					else
+					{
+						layers[l].neurons[n].weights[w] = Dad.layers[l].neurons[n].weights[w];
 					}
 				}
 			}
 		}
 
-		// Mutation
 
-		// wieviele gewichte
+        for (int i = 0; i < 2; i++)
+        {
+			// Mutation
+			int mutationLayer = Random.Range(0, layers.Length);
+			int mutationNeuron = Random.Range(0, layers[mutationLayer].neurons.Length);
+			int mutationWeight = Random.Range(0, layers[mutationLayer].neurons[mutationNeuron].weights.Length);
 
-		int mutationLayer = Random.Range(0, weights.Length);
-		int mutationNeuron  = Random.Range(0, weights[mutationLayer].Length);
-		int mutationConnection = Random.Range(0, weights[mutationLayer][mutationNeuron].Length);
-
-		weights [mutationLayer] [mutationNeuron] [mutationConnection] = getRandomWeight ();
+			layers[mutationLayer].neurons[mutationNeuron].RandomWeightValue(mutationWeight);
+		}
 	}
 
-	public Network(int [] _layers)
+	public double[] Process(double[] neuralNetInput)
 	{
-		this.layers = _layers;
-
-		initializeVariables ();
-
-		for (int l = 0; l < _layers.Length - 1 ; l++) { // layers
-			
-			weights[l] = new double[_layers[l]][];
-
-			for (int n = 0; n < _layers [l]; n++) { // Neurons
-				
-				weights[l][n] =  new double[_layers[l+1]];
-
-				for (int c = 0; c < _layers [l + 1]; c++) { // connections weight
-				
-					weights [l] [n] [c] = getRandomWeight ();
+		// Forward propagation
+        // Iterate through every layer and every neuron
+        for (int l = 0; l < layers.Length; l++) // for every layer
+        {
+            for (int n = 0; n < layers[l].neurons.Length; n++) // for every neuron
+            {
+				// get input value from previous layer output value
+				if (l == 0)
+				{
+					layers[l].neurons[n].inputValues = neuralNetInput; // first layer gets input from sensors
+					layers[l].neurons[n].Process();
 				}
-			}
-		}
+				else if (l == layers.Length - 1) // Last layer with activation
+				{
+					layers[l].neurons[n].GetInputValues(layers[l - 1]);
+					layers[l].neurons[n].Process();
 
-	}
+					if(layers[l] == layers[layers.Length -1]) // if motor output
+						layers[l].neurons[n].ActivationSigmoid();
+					else
+						layers[l].neurons[n].ActivationTanH();
 
-	public double [] process(double [] inputs) // propagation
-	{
-		//int a = 0;
-		
-		if (inputs.Length != layers [0]) {
-		
-			Debug.Log ("wrong input lenght!");
-			return null;
-		}
-			
-		double[] outputs;
-		//Debug.Log (lenght);
-		//for each layer
-		for (int i = 0; i < (lenght-1); i++) {
-			
-			//output values, they all start at 0 by default, checked that in C# Documentation ;)
-			outputs = new double[layers [i+1]];
-
-			//for each input neuron
-			for (int j = 0; j < inputs.Length; j++) {
-
-				
-
-				//and for each output neuron
-				for (int k = 0; k < outputs.Length; k++) {
-
-					//increase the load of an output neuron by the value of each input neuron multiplied by the weight between them
-					outputs [k] += inputs [j] * weights [i] [j] [k];
 				}
+				else
+				{
+					layers[l].neurons[n].GetInputValues(layers[l - 1]);
+					layers[l].neurons[n].Process();
+				}
+            }
+        }
 
-				
-			}
-
-			//we have the proper output values, now we have to use them as inputs to the next layer and so on, until we hit the last layer
-			inputs = new double[outputs.Length];
-
-			//after all output neurons have their values summed up, apply the activation function and save the value into new inputs
-			for (int l = 0; l < outputs.Length; l++) {
-				inputs [l] = sigmoid(outputs [l] * 5);
-				//inputs[l] = (float)ReLU((float)outputs[l] * 5);
-				//inputs[l] = eLU((float)outputs[l] * -5);
-
-				//neuronOutputs[i][l] = inputs[l];
-			}
+		// Get Network output values from last layer output		
+        for (int o = 0; o < output.Length; o++)
+        {
+			output[o] = layers[layers.Length-1].neurons[o].outputValue;
 		}
-		return inputs;
+
+		return output;
 	}
 
-	//	this is DEPRECATED
-	public double [] processRecurrent(double [] inputs, int layer)
-	{
-		if (layer == layers.Length -1 ) {
-			//Debug.Log (layer);
-			return inputs;
-		}
-
-		layer++;
-
-		double [] outputs = new double[layers[layer]];
 	
-		for (int i = 0; i < layers [layer]; i++) {
-			outputs [i] = 0;
-		}
-
-		for (int i = 0; i < layers[layer] ; i++) {
-
-			for (int j = 0; j < inputs.Length; j++) {
-				
-				outputs [i] += inputs [j] * weights [layer - 1] [j] [i];
-
-			}
-		}
-
-		for (int i = 0; i < layers [layer]; i++) {
-			outputs [i] = sigmoid(outputs[i]);
-			//outputs[i] = (float)ReLU((float)outputs[i] * 5);
-			//outputs[i] = eLU((float)outputs[i] * -5);
-		}
-
-		return processRecurrent (outputs, layer);
-
-	}
-
-	double getRandomWeight()
-    {
-		return Random.Range(-1.0f, 1.0f);
-	}
-
 }
