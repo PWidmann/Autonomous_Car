@@ -22,6 +22,7 @@ public class GameInterface : MonoBehaviour
 
     [SerializeField] SteeringBehavior steeringBehavior;
     [SerializeField] CarController carController;
+    [SerializeField] AIController aiController;
 
     float uiUpdateTimer = 0;
 
@@ -34,11 +35,7 @@ public class GameInterface : MonoBehaviour
     }
     public void Update()
     {
-        // GA/NN Panel
-        if (steeringBehavior.autoPilotOn && steeringBehavior.steeringMode == SteeringBehavior.SteeringMode.NeuralNet)
-            GAPanel.SetActive(true);
-        else
-            GAPanel.SetActive(false);
+        GAPanel.SetActive(true);
 
 
         uiUpdateTimer -= Time.deltaTime;
@@ -49,7 +46,7 @@ public class GameInterface : MonoBehaviour
         steering.text = "Steering: " + NeuralController.steering;
         braking.text = "Braking: " + NeuralController.braking;
 
-        double[] sensors = steeringBehavior.GetSensorValues();
+        double[] sensors = aiController.GetSensorValues();
 
         leftSensor.text = "Left Sensor: " + sensors[0];
         middleSensor.text = "Middle Sensor: " + sensors[1];

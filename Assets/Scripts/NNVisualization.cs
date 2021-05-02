@@ -4,26 +4,48 @@ using UnityEngine;
 
 public class NNVisualization : MonoBehaviour
 {
-    [SerializeField] GameObject neuronPanel;
+    public static NNVisualization Instance;
 
-    [SerializeField] NeuralController neuralController;
+    [SerializeField] GameObject neuronPanel;
+    [SerializeField] GameObject neuronPrefab;
+    [SerializeField] Transform InterfaceAnker;
+    
+    public bool netInitialized = false;
+    private Network net;
 
     void Start()
     {
+        if (Instance == null)
+            Instance = this;
+    }
+
+    public void NewNetInitialization(Network currentNet)
+    {
+        if (InterfaceAnker != null)
+        {
+            foreach (Transform child in InterfaceAnker.transform)
+            {
+                Destroy(child.gameObject);
+            }
+        }
         
+
+        net = currentNet;
+
+        for (int x = 0; x < net.layers.Length; x++) // For each layer
+        {
+            for (int y = 0; y < net.layers[x].neurons.Length; y++) // For each neuron
+            {
+                GameObject temp = Instantiate(neuronPrefab, InterfaceAnker);
+                temp.transform.position = new Vector3(temp.transform.position.x + x * 30, temp.transform.position.y + y * 30, temp.transform.position.z);
+            }
+        }
     }
 
 
-    void Update()
+
+    public void UpdateNeuronValues()
     {
-        //Network currentNet = neuralController.currentNeuralNet;
-        //int inputNeurons = currentNet.layerValues[0];
-        //Debug.Log("Inputneurons: " + inputNeurons);
-        //
-        //int hiddenlayers = currentNet.layerValues.Length - 2;
-        //Debug.Log("Hiddenlayers: " + hiddenlayers);
-        //
-        //int outputNeurons = currentNet.layerValues[currentNet.layerValues.Length -1];
-        //Debug.Log("Outputneurons: " + outputNeurons);
+
     }
 }

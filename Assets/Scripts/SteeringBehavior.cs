@@ -3,148 +3,48 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class SteeringBehavior : MonoBehaviour
+public class SteeringBehavior :MonoBehaviour
 {
-    public enum SteeringMode { ClassicAI, NeuralNet };
-    public enum ClassicAIMode { Sensors, Waypoints };
+    private float steerAmount = 0;
 
-    CarController carController;
-
-    [SerializeField] public bool autoPilotOn = true;
-    [SerializeField] public SteeringMode steeringMode;
-    [SerializeField] public ClassicAIMode classicAIMode;
-    [SerializeField] public DistanceSensor middleSensor;
-    [SerializeField] public DistanceSensor leftSensor;
-    [SerializeField] public DistanceSensor rightSensor;
-    [SerializeField] public GameObject wayPointParent;
-
-    List<DistanceSensor> sensors = new List<DistanceSensor>();
-
-    public List<GameObject> waypoints = new List<GameObject>();
-    public int currentWayPoint = 0;
-
-    float steerAmount = 0;
-
-    private void Start()
+    public void ClassicAIBrake(CarController carController, float middleSensorDistance)
     {
-        carController = GetComponent<CarController>();
-        sensors.Add(middleSensor);
-        sensors.Add(leftSensor);
-        sensors.Add(rightSensor);
-
-        foreach (Transform child in wayPointParent.transform)
-            waypoints.Add(child.gameObject);
-    }
-
-    private void Update()
-    {
-        if (!autoPilotOn)
+        if (middleSensorDistance < 16f && carController.Velocity > carController.MaxVelocity * 0.7f && middleSensorDistance != 0)
         {
-            if (Input.GetKeyDown(KeyCode.S))
-            {
-                carController.AutopilotBrake(carController.maxBrakePower);
-            }
-            if (Input.GetKeyUp(KeyCode.S))
-            {
-                carController.AutopilotBrake(0);
-            }
-        }
-    }
-
-    private void FixedUpdate()
-    {
-        if (autoPilotOn)
-        {
-            UpdateSensors();
-
-            switch (steeringMode)
-            {
-                case SteeringMode.ClassicAI:
-                    ClassicAIMotorTorque();
-                    ClassicAISteering();
-                    ClassicAIBrake();
-                    break;
-                case SteeringMode.NeuralNet:
-                    NeuralNet();
-                    break;
-            }
+            carController.AIBrake(1f);
         }
         else
         {
-            float power = Input.GetAxis("Vertical");
-            if (power > 0)
-            {
-                carController.AutoPilotMotorTorque(power);
-                carController.AutopilotBrake(0);
-            }
-            carController.AutoPilotSteer(Input.GetAxis("Horizontal") * 0.75f);
+            carController.AIBrake(0f);
         }
     }
 
-    
-
-    private void NeuralNet()
+    public void ClassicAISteering(CarController carController)
     {
-        float motorTorque = (float)NeuralController.motor + 0.1f;
-        float steering = (float)NeuralController.steering;
-        //float braking = (float)neuralController.braking;
-        
-        carController.AutoPilotMotorTorque(motorTorque);
-        carController.AutoPilotSteer(steering);
-        //carController.AutopilotBrake(braking);
+        float targetSteerAmount = Mathf.Lerp(carController.wheels[0].collider.steerAngle / carController.maxSteerAngle, steerAmount, 0.1f);
+
+        carController.AISteer(targetSteerAmount);
     }
 
-    private void ClassicAIBrake()
+    public void SetClassicAISensorSteering(float leftSensorDistance, float rightSensorDistance, float middleSensorDistance)
     {
-        if (middleSensor.Distance < 15f && carController.Velocity > carController.MaxVelocity * 0.7f && middleSensor.Distance != 0)
-        {
-            carController.AutopilotBrake(1f);
-        }
-        else
-        {
-            carController.AutopilotBrake(0f);
-        }
-    }
-
-    private void ClassicAISteering()
-    {
-        switch (classicAIMode)
-        {
-            case ClassicAIMode.Sensors:
-                ClassicAISensorSteering();
-                break;
-            case ClassicAIMode.Waypoints:
-                ClassicAIWaypointSteering();
-                break;
-        }
-        
-
-        //float targetSteerAmount = Mathf.Lerp(carController.wheels[0].collider.steerAngle, steerAmount, 0.1f);
-        //
-        //Debug.Log(targetSteerAmount);
-
-        carController.AutoPilotSteer(steerAmount);
-    }
-
-    private void ClassicAISensorSteering()
-    {
-        if (leftSensor.Distance > rightSensor.Distance)
+        if (leftSensorDistance > rightSensorDistance)
         {
             steerAmount = -1f;
         }
-
-        if (rightSensor.Distance > leftSensor.Distance)
+        
+        if (rightSensorDistance > leftSensorDistance)
         {
             steerAmount = 1f;
         }
-
+        
         // Steer amount adjustment according to distance in front of the car to smooth car behavior
         // More space in front of the car = less steering angle
-        if (middleSensor.Distance > 20f)
+        if (middleSensorDistance > 20f)
         {
-            steerAmount /= 15;
+            steerAmount /= 20;
         }
-        else if (middleSensor.Distance <= 20f && middleSensor.Distance > 10f)
+        else if (middleSensorDistance <= 20f && middleSensorDistance > 10f)
         {
             steerAmount /= 6;
         }
@@ -154,73 +54,57 @@ public class SteeringBehavior : MonoBehaviour
         }
     }
 
-    private void ClassicAIWaypointSteering()
+    public void SetClassicAIWaypointSteering(AIController aiController, CarController carController)
     {
         // Get target position
-        Vector3 targetPos = waypoints[currentWayPoint].transform.position;
-        targetPos.y = transform.position.y;
-
+        Vector3 targetPos = aiController.waypoints[aiController.currentWayPoint].transform.position;
+        targetPos.y = aiController.transform.position.y;
+        
         // Get target direction and angle to target waypoint
-        Vector3 targetDir = targetPos - transform.position;
-        float angle = Vector3.Angle(transform.forward, targetDir) / (carController.maxSteerAngle * 2);
-
+        Vector3 targetDir = targetPos - aiController.transform.position;
+        float angle = Vector3.Angle(aiController.transform.forward, targetDir) / (carController.maxSteerAngle * 2);
+        
         // if  1:target is on the right side
         // if -1:target on left side
         // 0 if straight
-        float dotProduct = Vector3.Dot(targetDir, transform.right); 
-
+        float dotProduct = Vector3.Dot(targetDir, aiController.transform.right); 
+        
         // Change steering angle to minus or plus if target is on the left or the right side of the car
         float targetSteerAmount = dotProduct > 0 ? angle : -angle;
-
+        
         // Apply steering smoothing
-        steerAmount = Mathf.Lerp(carController.wheels[0].collider.steerAngle / carController.maxSteerAngle, targetSteerAmount, 0.1f);
+        steerAmount = Mathf.Lerp(carController.wheels[0].collider.steerAngle / carController.maxSteerAngle, targetSteerAmount, 0.7f);
 
         // Jump to next waypoint
-        if (Vector3.Distance(targetPos, transform.position) < 8f)
+        if (Vector3.Distance(targetPos, aiController.transform.position) < 8f)
         {
-            if (currentWayPoint != waypoints.Count - 1)
-                currentWayPoint++;
+            if (aiController.currentWayPoint != aiController.waypoints.Count - 1)
+                aiController.SetCurrentWayPoint(aiController.currentWayPoint + 1);
             else
-                currentWayPoint = 0;
+                aiController.SetCurrentWayPoint(0);
         }
     }
 
-    private void ClassicAIMotorTorque()
+    public void ClassicAIMotorTorque(CarController carController)
     {
         if (!carController.IsBraking && carController.Velocity < carController.MaxVelocity)
         {
             float velocity = Mathf.Lerp(carController.Velocity, carController.MaxVelocity, 0.1f);
             float torqueValue = velocity / carController.MaxVelocity;
-
+        
             // Needs value between 0 and 1
-            carController.AutoPilotMotorTorque(torqueValue);
+            carController.AIMotorTorque(torqueValue);
         }
         else
         {
-            carController.AutoPilotMotorTorque(0f);
+            carController.AIMotorTorque(0f);
         }
-
+        
         if (carController.IsBraking)
         {
-            carController.AutoPilotMotorTorque(0f);
+            carController.AIMotorTorque(0f);
         }
     }
 
-    private void UpdateSensors()
-    {
-        foreach (DistanceSensor sensor in sensors)
-        {
-            sensor.UpdatePosition();
-        }
-    }
-
-    public double[] GetSensorValues()
-    {
-        double[] sensorData = new double[4];
-        sensorData[0] = leftSensor.GetNormalizedValue();
-        sensorData[1] = middleSensor.GetNormalizedValue();
-        sensorData[2] = rightSensor.GetNormalizedValue();
-        sensorData[3] = carController.Velocity / 100;
-        return sensorData;
-    }
+    
 }

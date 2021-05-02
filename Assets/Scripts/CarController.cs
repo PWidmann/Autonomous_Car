@@ -31,7 +31,7 @@ public class CarController : MonoBehaviour
     [SerializeField] GameObject brakeLight;
     [SerializeField] Material brakeLightMaterial;
 
-    
+    AIController aIController;
 
     private float inputX, inputY;
     private Rigidbody rb;
@@ -45,13 +45,14 @@ public class CarController : MonoBehaviour
     {
         rb = GetComponent<Rigidbody>();
         rb.centerOfMass = centerOfMass;
+        aIController = GetComponent<AIController>();
     }
 
 
     private void Update()
     {
-        AnimateWheels();
-        GetInputs();
+        ManualSteering();
+        AnimateWheels();  
     }
 
     private void FixedUpdate()
@@ -59,26 +60,50 @@ public class CarController : MonoBehaviour
         velocity = rb.velocity.magnitude;
     }
 
-    private void GetInputs()
+    void ManualSteering()
     {
-        inputX = Input.GetAxis("Horizontal");
-        inputY = Input.GetAxis("Vertical");
+        if (!aIController.autoPilotOn)
+        {
+            // Get input
+            inputX = Input.GetAxis("Horizontal");
+            inputY = Input.GetAxis("Vertical");
+
+            // Braking
+            if (Input.GetKeyDown(KeyCode.S))
+            {
+                AIBrake(maxBrakePower);
+            }
+            if (Input.GetKeyUp(KeyCode.S))
+            {
+                AIBrake(0);
+            }
+
+            // Power
+            float power = inputY;
+            if (power > 0)
+            {
+                AIMotorTorque(power);
+                AIBrake(0);
+            }
+
+            // Steering
+            AISteer(inputX * 0.8f);
+        }
     }
 
     //
-    // Autopilot movement
+    // AI movement
     //
 
     /// <summary>
     /// Needs input beween 0 and 1. 1 is maximum power.
     /// </summary>
     /// <param name="_input"></param>
-    public void AutoPilotMotorTorque(float _input)
+    public void AIMotorTorque(float _input)
     {
-
         foreach (var wheel in wheels)
         {
-            if(velocity * 3.6 < 110f)
+            if(velocity * 3.6 < 110f) // Cap motor speed at 110 km/h
                 wheel.collider.motorTorque = _input * maxVelocity * maxMotorTorque;
             else
                 wheel.collider.motorTorque = 0;
@@ -89,7 +114,7 @@ public class CarController : MonoBehaviour
     /// Needs input beween -1(steering left) and 1(steering right).
     /// </summary>
     /// <param name="_input"></param>
-    public void AutoPilotSteer(float _steerAmount)
+    public void AISteer(float _steerAmount)
     {
         if (_steerAmount < -1)
             _steerAmount = -1;
@@ -110,7 +135,7 @@ public class CarController : MonoBehaviour
     /// Needs input beween 0 and 1. 1 is maximum power.
     /// </summary>
     /// <param name="_input"></param>
-    public void AutopilotBrake(float _brakePower)
+    public void AIBrake(float _brakePower)
     {
         if (_brakePower > 0)
         {
@@ -134,8 +159,6 @@ public class CarController : MonoBehaviour
                 wheel.collider.brakeTorque = 0;
             }
         }
-
-        
     }
 
     private void AnimateWheels()

@@ -20,8 +20,6 @@ public class Network {
 			else
 				layers[l] = new Layer(_layers[l + 1], _layers[l]);
 		}
-
-		Debug.Log("Network creation layers: " + layers.Length);
 	}
 
 	public Network(Network Dad, Network Mom)
@@ -66,7 +64,7 @@ public class Network {
 		}
 
 
-        for (int i = 0; i < 2; i++)
+        for (int i = 0; i < 3; i++)
         {
 			// Mutation
 			int mutationLayer = Random.Range(0, layers.Length);
@@ -96,10 +94,10 @@ public class Network {
 					layers[l].neurons[n].GetInputValues(layers[l - 1]);
 					layers[l].neurons[n].Process();
 
-					if(layers[l] == layers[layers.Length -1]) // if motor output
-						layers[l].neurons[n].ActivationSigmoid();
+					if(layers[l].neurons[n] == layers[layers.Length -1].neurons[layers[layers.Length - 1].neurons.Length -1]) // if motor output // Last neuron of network
+						layers[l].neurons[n].ActivationSigmoid(); // Motor output
 					else
-						layers[l].neurons[n].ActivationTanH();
+						layers[l].neurons[n].ActivationSigmoid(); // Steering
 
 				}
 				else
