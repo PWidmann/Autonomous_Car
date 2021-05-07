@@ -19,11 +19,10 @@ public class NeuralController : MonoBehaviour
 
 	public FitnessMeasure fitnessMeasure;
 
-    public int timeScale;
 	public float mutationPercent = 0.1f;
 
-	public int population;
-	public static int staticPopulation;
+    public int population;
+    public static int maxPopulation;
 
     public double driveTime = 0;
 	public static double steering;
@@ -38,15 +37,14 @@ public class NeuralController : MonoBehaviour
 
 	public static float bestDistance = 0;
 
-	Vector3 startPosition;
-	Quaternion startRotation;
+	public static Vector3 startPosition;
+	public static Quaternion startRotation;
 
 	public int[] layers;
 
 	public static Network [] networks; // Genotypen -> gespeicherte gewichtungen
-	public Network currentNeuralNet;
+	public static Network currentNeuralNet;
 	public Network bestNeuralNet;
-	RaycastHit hit;
 
 	Vector3 position;
 
@@ -56,39 +54,45 @@ public class NeuralController : MonoBehaviour
 	float lastSteerAngle = 0;
 	float wobbleBonus = 0;
 
-	// Use this for initialization
-	void Start()
+	public static bool resetNetWork = false;
+
+    void Start()
     {
-		//parameters = { 4, 6, 6, 2 }; // 4 input, 1 hidden layer with 10 neurons, 3 outputs
-		staticPopulation = population;
-
-        Time.timeScale = timeScale;
-
         Debug.Log("Generation " + generation);
         rigidbody = GetComponent<Rigidbody>();
 		carController = GetComponent<CarController>();
 		steeringBehavior = GetComponent<SteeringBehavior>();
 		aIController = GetComponent<AIController>();
 
-		results = new double[2];
-        points = new double[population]; // Bookkeeping current generation
-        sensors = new double[4];
-       
-        position = transform.position;
-        networks = new Network[population];
-
 		startPosition = transform.position;
 		startRotation = transform.rotation;
 
-		
+		ResetNetwork();
 
-		for (int i = 0; i < population; i++)
-        {
-			networks[i] = new Network(layers);
-        }
 
 		//DebugNeuralNet();
 
+	}
+
+	public void ResetNetwork()
+	{
+		results = new double[2];
+		points = new double[population]; // Bookkeeping current generation
+		sensors = new double[4];
+
+		position = transform.position;
+		networks = new Network[population];
+
+		maxPopulation = population;
+
+		for (int i = 0; i < population; i++)
+		{
+			networks[i] = new Network(layers);
+		}
+
+		currentNeuralNetwork = 0;
+		generation = 0;
+		
 	}
 
 	void DebugNeuralNet()
@@ -118,10 +122,10 @@ public class NeuralController : MonoBehaviour
 
 	void FixedUpdate()
 	{
-		if (aIController.steeringMode == AIController.SteeringMode.NeuralNet)
+		if (aIController.steeringMode == AIController.SteeringMode.NeuralNet && aIController.aiControllerActive)
 		{
 			results = networks[currentNeuralNetwork].Process(sensors);
-			steering = ((double)results[0] - 0.5f);
+			steering = ((double)results[0]);
 			motor = (double)results[1] * 0.5f;
 			//braking = (double)results[2] - 0.5f;
 
@@ -132,26 +136,27 @@ public class NeuralController : MonoBehaviour
 			currentNeuralNet = networks[currentNeuralNetwork];
 		}
 
-		if (!NNVisualization.Instance.netInitialized)
-		{
-			NNVisualization.Instance.NewNetInitialization(currentNeuralNet);
-			NNVisualization.Instance.netInitialized = true;
-		}
+		//if (!NNVisualization.Instance.netInitialized)
+		//{
+		//	NNVisualization.Instance.NewNetInitialization(currentNeuralNet);
+		//	NNVisualization.Instance.netInitialized = true;
+		//}
 	}
 	
 	void Update () {
-		if (aIController.steeringMode == AIController.SteeringMode.NeuralNet)
+		if (aIController.steeringMode == AIController.SteeringMode.NeuralNet && aIController.aiControllerActive)
 		{
-			Time.timeScale = timeScale;
+			if (resetNetWork)
+			{
+				ResetNetwork();
+				resetNetWork = false;
+			}
 
 			//if (sensors[1] < 0.2f && results[2] > 0 && sensors[3] > 0.15f)
 			//brakePoints += Time.deltaTime;
 
-			
-
-
 			//check if the network is moving
-			if (driveTime > 3 && (carController.Velocity * 3.6) < 2) //if less than 2 km/h
+			if (driveTime > 3 && (carController.Velocity * 3.6) < 5) //if less than 2 km/h
 			{
 				if (aIController.steeringMode == AIController.SteeringMode.NeuralNet)
 					OnCollisionEnter(null);
@@ -187,7 +192,7 @@ public class NeuralController : MonoBehaviour
 	//game over, friend :/
 	void OnCollisionEnter (Collision col)
 	{
-		if (aIController.steeringMode == AIController.SteeringMode.NeuralNet)
+		if (aIController.steeringMode == AIController.SteeringMode.NeuralNet && aIController.aiControllerActive)
 		{
 			if (results[1] > 0.3f) // If there is an impact while high motor torque
 			{
@@ -201,7 +206,7 @@ public class NeuralController : MonoBehaviour
 			switch (fitnessMeasure)
 			{
 				case FitnessMeasure.distance2byTime:
-					points[currentNeuralNetwork] += wobbleBonus * 1000;
+					points[currentNeuralNetwork] += wobbleBonus * 300;
 					points[currentNeuralNetwork] *= points[currentNeuralNetwork];
 					points[currentNeuralNetwork] /= driveTime;
 					if (heavyImpacts != 0)
@@ -215,16 +220,13 @@ public class NeuralController : MonoBehaviour
 					break;
 			}
 
+			points[currentNeuralNetwork] = Mathf.Round((float)points[currentNeuralNetwork]);
+
 			heavyImpacts = 0;
 			//brakePoints = 0;
 			driveTime = 0;
-			Debug.Log("Wobble Bonus" + wobbleBonus);
+			//Debug.Log("Wobble Bonus" + wobbleBonus);
 			wobbleBonus = 0;
-
-			
-
-			//Debug.Log("network " + currentNeuralNetwork + " scored " + points[currentNeuralNetwork]);
-
 
 			//now we reproduce
 			if (currentNeuralNetwork == population - 1)
@@ -296,7 +298,6 @@ public class NeuralController : MonoBehaviour
 			}
 
 			currentNeuralNetwork++;
-			NNVisualization.Instance.NewNetInitialization(networks[currentNeuralNetwork]);
 
 			//position reset is pretty important, don't forget it :*
 			position = transform.position;
@@ -311,5 +312,7 @@ public class NeuralController : MonoBehaviour
         transform.rotation = startRotation;
 		aIController.currentWayPoint = 0;
     }
+
+	
 }
 

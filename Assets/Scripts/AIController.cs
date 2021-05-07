@@ -24,6 +24,8 @@ public class AIController : MonoBehaviour
 
     public List<GameObject> waypoints = new List<GameObject>();
 
+    public bool aiControllerActive = false;
+
     private void Start()
     {
         carController = GetComponent<CarController>();
@@ -38,18 +40,21 @@ public class AIController : MonoBehaviour
 
     private void FixedUpdate()
     {
-        if (autoPilotOn)
+        UpdateSensors();
+
+        if (aiControllerActive)
         {
-            UpdateSensors();
-        
-            switch (steeringMode)
+            if (autoPilotOn)
             {
-                case SteeringMode.ClassicAI:
-                    SelectClassicAIMode();
-                    break;
-                case SteeringMode.NeuralNet:
-                    NeuralNet();
-                    break;
+                switch (steeringMode)
+                {
+                    case SteeringMode.ClassicAI:
+                        SelectClassicAIMode();
+                        break;
+                    case SteeringMode.NeuralNet:
+                        NeuralNet();
+                        break;
+                }
             }
         }
     }
@@ -73,7 +78,7 @@ public class AIController : MonoBehaviour
     private void NeuralNet()
     {
         
-        float motorTorque = (float)NeuralController.motor + 0.1f;
+        float motorTorque = (float)NeuralController.motor;
         float steering = (float)NeuralController.steering;
         //float braking = (float)neuralController.braking;
         
@@ -93,22 +98,14 @@ public class AIController : MonoBehaviour
 
         for (int i = 0; i < sensors.Count; i++)
         {
-            NeuralController.sensors[i] = sensors[i].Distance;
+            NeuralController.sensors[i] = sensors[i].GetNormalizedValue();
         }
+
+        NeuralController.sensors[3] = carController.rb.velocity.magnitude / 100f;
     }
 
     public void SetCurrentWayPoint(int value)
     {
         currentWayPoint = value;
-    }
-
-    public double[] GetSensorValues()
-    {
-        double[] sensorData = new double[4];
-        sensorData[0] = leftSensor.GetNormalizedValue();
-        sensorData[1] = middleSensor.GetNormalizedValue();
-        sensorData[2] = rightSensor.GetNormalizedValue();
-        sensorData[3] = carController.Velocity / 100;
-        return sensorData;
     }
 }

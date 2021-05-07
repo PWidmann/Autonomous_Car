@@ -19,8 +19,8 @@ public class GameInterface : MonoBehaviour
     [SerializeField] private Text middleSensor;
     [SerializeField] private Text rightSensor;
     [SerializeField] private GameObject GAPanel;
+    [SerializeField] public GameObject NNVisualisation;
 
-    [SerializeField] SteeringBehavior steeringBehavior;
     [SerializeField] CarController carController;
     [SerializeField] AIController aiController;
 
@@ -35,21 +35,21 @@ public class GameInterface : MonoBehaviour
     }
     public void Update()
     {
-        GAPanel.SetActive(true);
+        //GAPanel.SetActive(true);
 
 
         uiUpdateTimer -= Time.deltaTime;
         
         generationText.text = "Generation: " + (NeuralController.generation + 1);
-        populationText.text = "Population: " + (NeuralController.currentNeuralNetwork + 1) + " / " + NeuralController.staticPopulation;
+        populationText.text = "Population: " + (NeuralController.currentNeuralNetwork + 1) + " / " + "16";
         motor.text = "Motor: " + NeuralController.motor;
         steering.text = "Steering: " + NeuralController.steering;
         braking.text = "Braking: " + NeuralController.braking;
 
-        double[] sensors = aiController.GetSensorValues();
+        double[] sensors = NeuralController.sensors;
 
-        leftSensor.text = "Left Sensor: " + sensors[0];
-        middleSensor.text = "Middle Sensor: " + sensors[1];
+        leftSensor.text = "Left Sensor: " + sensors[1];
+        middleSensor.text = "Middle Sensor: " + sensors[0];
         rightSensor.text = "Right Sensor: " + sensors[2];
         speedText.text = "Velocity Sensor: " + sensors[3];
 

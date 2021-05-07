@@ -34,7 +34,7 @@ public class CarController : MonoBehaviour
     AIController aIController;
 
     private float inputX, inputY;
-    private Rigidbody rb;
+    public Rigidbody rb;
     private bool isBraking = false;
     private float velocity = 0f;
     public bool IsBraking { get => isBraking; set => isBraking = value; }

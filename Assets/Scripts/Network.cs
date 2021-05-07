@@ -14,7 +14,7 @@ public class Network {
 
 		for (int l = 0; l < layers.Length; l++)
 		{
-			// if first hidden layer -> input count from sensors
+			// First hidden layer -> input from sensors
 			if(l == 0)
 				layers[l] = new Layer(_layers[1], _layers[0]);
 			else
@@ -64,7 +64,7 @@ public class Network {
 		}
 
 
-        for (int i = 0; i < 3; i++)
+        for (int i = 0; i < 4; i++)
         {
 			// Mutation
 			int mutationLayer = Random.Range(0, layers.Length);
@@ -97,7 +97,7 @@ public class Network {
 					if(layers[l].neurons[n] == layers[layers.Length -1].neurons[layers[layers.Length - 1].neurons.Length -1]) // if motor output // Last neuron of network
 						layers[l].neurons[n].ActivationSigmoid(); // Motor output
 					else
-						layers[l].neurons[n].ActivationSigmoid(); // Steering
+						layers[l].neurons[n].ActivationTanH(); // Steering
 
 				}
 				else
