@@ -103,10 +103,7 @@ public class CarController : MonoBehaviour
     {
         foreach (var wheel in wheels)
         {
-            if(velocity * 3.6 < 110f) // Cap motor speed at 110 km/h
-                wheel.collider.motorTorque = _input * maxVelocity * maxMotorTorque;
-            else
-                wheel.collider.motorTorque = 0;
+            wheel.collider.motorTorque = _input * maxVelocity * maxMotorTorque;
         }
     }
 

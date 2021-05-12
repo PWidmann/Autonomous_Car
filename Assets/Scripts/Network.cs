@@ -5,7 +5,8 @@ using UnityEngine;
 public class Network {
 
 	public Layer[] layers; // layers without input layer
-	double[] output; 
+	double[] output;
+	int weightCounter = 0;
 
 	public Network(int [] _layers)
 	{
@@ -20,6 +21,26 @@ public class Network {
 			else
 				layers[l] = new Layer(_layers[l + 1], _layers[l]);
 		}
+
+		//for (int l = 0; l < _layers.Length; l++)
+		//{
+		//	// First hidden layer -> input from sensors
+		//	if (l == 0)
+		//	{
+		//		layers[l] = new Layer(NeuralController.neuronPerLayerCount, _layers[0]);
+		//		Debug.Log("------------ Created Layer " + l + " with " + NeuralController.neuronPerLayerCount + "Neurons ------------------");
+		//	}
+		//	else if (l == layers.Length - 1) // if last layer
+		//	{
+		//		layers[l] = new Layer(2, _layers[l]);
+		//		Debug.Log("------------ Created last Layer " + l + " with 2 Neurons");
+		//	}
+		//	else
+		//	{
+		//		layers[l] = new Layer(NeuralController.neuronPerLayerCount, _layers[l]);
+		//		Debug.Log("------------ Created Layer " + l + " with " + NeuralController.neuronPerLayerCount + "Neurons ------------------");
+		//	}
+		//}
 	}
 
 	public Network(Network Dad, Network Mom)
@@ -63,8 +84,12 @@ public class Network {
 			}
 		}
 
-
-        for (int i = 0; i < 4; i++)
+		int weightCount = (int)(GetWeightCount() * NeuralController.mutationPercent);
+		if (weightCount == 0)
+			weightCount = 2
+				;
+		Debug.Log(weightCount + " weights were adjusted");
+		for (int i = 0; i < weightCount; i++)
         {
 			// Mutation
 			int mutationLayer = Random.Range(0, layers.Length);
@@ -73,6 +98,24 @@ public class Network {
 
 			layers[mutationLayer].neurons[mutationNeuron].RandomWeightValue(mutationWeight);
 		}
+	}
+
+	int GetWeightCount()
+	{
+		weightCounter = 0;
+
+        for (int l = 0; l < layers.Length; l++)
+        {
+            for (int n = 0; n < layers[l].neurons.Length; n++)
+            {
+                for (int w = 0; w < layers[l].neurons[n].weights.Length; w++)
+                {
+					weightCounter++;
+                }
+            }
+        }
+
+		return weightCounter;
 	}
 
 	public double[] Process(double[] neuralNetInput)

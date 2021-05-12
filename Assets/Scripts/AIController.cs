@@ -20,6 +20,9 @@ public class AIController : MonoBehaviour
 
     public int currentWayPoint = 0;
 
+    public float lapTimer = 0;
+    public bool lapStarted = false;
+
     List<DistanceSensor> sensors = new List<DistanceSensor>();
 
     public List<GameObject> waypoints = new List<GameObject>();
@@ -36,6 +39,24 @@ public class AIController : MonoBehaviour
 
         foreach (Transform child in wayPointParent.transform)
             waypoints.Add(child.gameObject);
+    }
+
+    private void Update()
+    {
+        LapTimer();
+    }
+
+    void LapTimer()
+    {
+        if (lapStarted)
+        {
+            lapTimer += Time.deltaTime;
+        }
+    }
+
+    public void ResetLapTimer()
+    {
+        lapTimer = 0;
     }
 
     private void FixedUpdate()
@@ -78,10 +99,11 @@ public class AIController : MonoBehaviour
     private void NeuralNet()
     {
         
-        float motorTorque = (float)NeuralController.motor;
+        float motorTorque = (float)NeuralController.motor * 0.8f;
         float steering = (float)NeuralController.steering;
         //float braking = (float)neuralController.braking;
-        
+
+        carController.AIBrake(0);
         carController.AIMotorTorque(motorTorque);
         carController.AISteer(steering);
 

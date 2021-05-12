@@ -8,6 +8,15 @@ public class ControlPanel : MonoBehaviour
     [SerializeField] Slider timeScaleSlider;
     [SerializeField] Text timeScaleSliderText;
 
+    [SerializeField] Slider hiddenlayerSlider;
+    [SerializeField] Text hiddenlayerValueText;
+
+    [SerializeField] Slider neuronlayerSlider;
+    [SerializeField] Text neuronlayerValueText;
+
+    [SerializeField] Slider mutationSlider;
+    [SerializeField] Text mutationValueText;
+
     [SerializeField] Dropdown aiSelector;
     [SerializeField] Dropdown classicAIselector;
 
@@ -18,6 +27,34 @@ public class ControlPanel : MonoBehaviour
     {
         Time.timeScale = timeScaleSlider.value;
         timeScaleSliderText.text = "Timescale: " + timeScaleSlider.value;
+
+        ManageInterfaceVisibility();
+    }
+
+    void ManageInterfaceVisibility()
+    {
+        if (aiSelector.value == 1) 
+        {
+            // If neural net is selected
+            classicAIselector.transform.gameObject.SetActive(false);
+            hiddenlayerSlider.transform.gameObject.SetActive(true);
+            neuronlayerSlider.transform.gameObject.SetActive(true);
+            mutationSlider.transform.gameObject.SetActive(true);
+
+            hiddenlayerValueText.text = hiddenlayerSlider.value.ToString();
+            neuronlayerValueText.text = neuronlayerSlider.value.ToString();
+
+            NeuralController.mutationPercent = mutationSlider.value / 100;
+            mutationValueText.text = (NeuralController.mutationPercent * 100).ToString() + "%";
+        }
+        else
+        {
+            // if classic AI selected
+            classicAIselector.transform.gameObject.SetActive(true);
+            hiddenlayerSlider.transform.gameObject.SetActive(false);
+            neuronlayerSlider.transform.gameObject.SetActive(false);
+            mutationSlider.transform.gameObject.SetActive(false);
+        }
     }
 
     public void StartButton()
@@ -28,6 +65,7 @@ public class ControlPanel : MonoBehaviour
         carController.rb.velocity = Vector3.zero;
         carController.rb.angularVelocity = Vector3.zero;
         aiController.currentWayPoint = 0;
+        aiController.ResetLapTimer();
 
         aiController.autoPilotOn = true;
 
@@ -39,7 +77,6 @@ public class ControlPanel : MonoBehaviour
                 break;
             case 1:
                 aiController.steeringMode = AIController.SteeringMode.NeuralNet;
-                NNVisualization.Instance.NewNetInitialization(NeuralController.networks[0]);
                 NeuralController.resetNetWork = true;
                 GameInterface.Instance.NNVisualisation.SetActive(true);
                 break;
@@ -56,5 +93,15 @@ public class ControlPanel : MonoBehaviour
         }
 
         aiController.aiControllerActive = true;
+        aiController.lapStarted = true;
+
+        NeuralController.hiddenLayerCount = (int)hiddenlayerSlider.value;
+        NeuralController.neuronPerLayerCount = (int)neuronlayerSlider.value;
+        NeuralController.currentSessionBestScore = 0;
+    }
+
+    public void ShowNNButton()
+    {
+        GameInterface.Instance.NNVisualisation.SetActive(!GameInterface.Instance.NNVisualisation.activeSelf);
     }
 }

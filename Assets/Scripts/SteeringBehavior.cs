@@ -5,7 +5,7 @@ using UnityEngine;
 
 public class SteeringBehavior :MonoBehaviour
 {
-    private float steerAmount = 0;
+    private float steerAmount;
 
     public void ClassicAIBrake(CarController carController, float middleSensorDistance)
     {

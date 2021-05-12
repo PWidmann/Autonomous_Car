@@ -16,6 +16,7 @@ public class NNVisualization : MonoBehaviour
     [SerializeField] GameObject textSteering;
     [SerializeField] Text generationText;
     [SerializeField] Text populationText;
+    [SerializeField] Text bestScore;
 
     public bool netInitialized = false;
     private Network net;
@@ -23,12 +24,17 @@ public class NNVisualization : MonoBehaviour
     public List<GameObject> inputNeurons = new List<GameObject>();
     public GameObject[][] layers;
 
+    Vector2 panelStartPosition;
+    float panelStartWidth;
+
     void Start()
     {
         if (Instance == null)
             Instance = this;
 
         GameInterface.Instance.NNVisualisation.SetActive(false);
+        panelStartWidth = neuronPanel.GetComponent<RectTransform>().rect.width;
+        panelStartPosition = neuronPanel.GetComponent<RectTransform>().position;
     }
 
     private void Update()
@@ -39,6 +45,15 @@ public class NNVisualization : MonoBehaviour
         {
             generationText.text = "Generation: " + (NeuralController.generation + 1);
             populationText.text = "Population: " + (NeuralController.currentNeuralNetwork + 1) + " / " + NeuralController.maxPopulation;
+            bestScore.text = "Current best score: " + NeuralController.currentSessionBestScore;
+        }
+    }
+
+    void DestroyInterfaceNeurons()
+    {
+        foreach (Transform child in InterfaceAnker.transform)
+        {
+            Destroy(child.gameObject);
         }
     }
 
@@ -46,10 +61,7 @@ public class NNVisualization : MonoBehaviour
     {
         if (InterfaceAnker != null)
         {
-            foreach (Transform child in InterfaceAnker.transform)
-            {
-                Destroy(child.gameObject);
-            }
+            DestroyInterfaceNeurons();
 
             inputNeurons.Clear();
         }
@@ -98,8 +110,6 @@ public class NNVisualization : MonoBehaviour
         }
     }
 
-
-
     public void UpdateNeuronValues()
     {
         if (layers != null)
@@ -111,7 +121,7 @@ public class NNVisualization : MonoBehaviour
             }
 
             // Update Hidden & output layer
-            for (int x = 0; x < layers.Length; x++)
+            for (int x = 0; x < NeuralController.hiddenLayerCount + 1; x++)
             {
                 for (int y = 0; y < layers[x].Length; y++)
                 {

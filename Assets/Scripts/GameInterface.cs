@@ -9,6 +9,7 @@ public class GameInterface : MonoBehaviour
     public static GameInterface Instance;
 
     [SerializeField] private Text kmhText;
+    [SerializeField] private Text lapTimerText;
     [SerializeField] private Text speedText;
     [SerializeField] private Text generationText;
     [SerializeField] private Text populationText;
@@ -20,6 +21,9 @@ public class GameInterface : MonoBehaviour
     [SerializeField] private Text rightSensor;
     [SerializeField] private GameObject GAPanel;
     [SerializeField] public GameObject NNVisualisation;
+    [SerializeField] public GameObject controlPanel;
+    [SerializeField] public GameObject speedoMeterPanel;
+    [SerializeField] public GameObject lapTimePanel;
 
     [SerializeField] CarController carController;
     [SerializeField] AIController aiController;
@@ -32,13 +36,16 @@ public class GameInterface : MonoBehaviour
             Instance = this;
 
         uiUpdateTimer = 0.2f;
+        controlPanel.SetActive(true);
+        NNVisualisation.SetActive(true);
+        speedoMeterPanel.SetActive(true);
+        lapTimePanel.SetActive(true);
     }
     public void Update()
     {
-        //GAPanel.SetActive(true);
-
-
         uiUpdateTimer -= Time.deltaTime;
+
+        lapTimerText.text = GetLapTime(aiController.lapTimer);
         
         generationText.text = "Generation: " + (NeuralController.generation + 1);
         populationText.text = "Population: " + (NeuralController.currentNeuralNetwork + 1) + " / " + "16";
@@ -59,5 +66,28 @@ public class GameInterface : MonoBehaviour
             uiUpdateTimer = 0.2f;
         }
         
+    }
+
+    String GetLapTime(float currentTime)
+    {
+        string lapTime = "";
+
+        float minutes = Mathf.Floor(currentTime / 60);
+        float seconds = Mathf.Floor(currentTime % 60);
+        float hundredthSecond = Mathf.Floor((currentTime - (minutes*60) - seconds) * 100);
+
+        // Add a 0 when single digit
+        string minutesS = (minutes < 10 ? "0" + minutes : minutes.ToString());
+        string secondsS = (seconds < 10 ? "0" + seconds : seconds.ToString());
+
+        string hundredthSecondS;
+        if (currentTime == 0)
+            hundredthSecondS = "00";
+        else
+            hundredthSecondS = (hundredthSecond < 10 ? "0" + hundredthSecond : hundredthSecond.ToString());
+
+        lapTime = minutesS + ":" + secondsS + ":" + hundredthSecondS;
+
+        return lapTime;
     }
 }

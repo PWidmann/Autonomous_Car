@@ -11,15 +11,17 @@ public enum FitnessMeasure{
 
 public class NeuralController : MonoBehaviour 
 {
-    new Rigidbody rigidbody;
+	[SerializeField] ScoreManager scoreManager;
+	new Rigidbody rigidbody;
 	CarController carController;
 	SteeringBehavior steeringBehavior;
 	AIController aIController;
+	
 
 
 	public FitnessMeasure fitnessMeasure;
 
-	public float mutationPercent = 0.1f;
+	public static float mutationPercent = 0.03f;
 
     public int population;
     public static int maxPopulation;
@@ -30,7 +32,7 @@ public class NeuralController : MonoBehaviour
 	public static double motor;
 
 	public static int generation = 0;
-	public double [] points;
+	public static double [] points;
 	public double [] results;
 	public static double [] sensors;
 	public static int currentNeuralNetwork = 0;
@@ -41,10 +43,13 @@ public class NeuralController : MonoBehaviour
 	public static Quaternion startRotation;
 
 	public int[] layers;
+	public static int[] getLayers;
 
-	public static Network [] networks; // Genotypen -> gespeicherte gewichtungen
+	public static Network [] networks; 
 	public static Network currentNeuralNet;
 	public Network bestNeuralNet;
+	public static int hiddenLayerCount = 0;
+	public static int neuronPerLayerCount = 0;
 
 	Vector3 position;
 
@@ -52,9 +57,12 @@ public class NeuralController : MonoBehaviour
 	//float brakePoints = 0;
 	float wobbleTimer = 0;
 	float lastSteerAngle = 0;
-	float wobbleBonus = 0;
+	float antiWobbleBonus = 0;
 
 	public static bool resetNetWork = false;
+	public static int currentGenBestScore = 0;
+	public static int currentSessionBestScore = 0;
+	public static Network bestNetwork;
 
     void Start()
     {
@@ -67,18 +75,16 @@ public class NeuralController : MonoBehaviour
 		startPosition = transform.position;
 		startRotation = transform.rotation;
 
-		ResetNetwork();
-
-
-		//DebugNeuralNet();
-
+		sensors = new double[4];
 	}
 
 	public void ResetNetwork()
 	{
 		results = new double[2];
 		points = new double[population]; // Bookkeeping current generation
-		sensors = new double[4];
+
+		ResizeLayerArray();
+		
 
 		position = transform.position;
 		networks = new Network[population];
@@ -92,32 +98,24 @@ public class NeuralController : MonoBehaviour
 
 		currentNeuralNetwork = 0;
 		generation = 0;
-		
+		currentNeuralNet = networks[0];
+		NNVisualization.Instance.NewNetInitialization(currentNeuralNet);
 	}
 
-	void DebugNeuralNet()
+	void ResizeLayerArray()
 	{
-		Network net1 = networks[0];
+		int[] newArray = new int[hiddenLayerCount + 2]; // Plus 1 for output layer
 
-		Debug.Log("There are " + net1.layers.Length + " Layers without input");
+		newArray[0] = layers[0];
+        for (int i = 1; i < newArray.Length -1; i++)
+        {
+			newArray[i] = neuronPerLayerCount;
+        }
+		
+		newArray[newArray.Length -1] = 2;
 
-		string weightValues;
-
-		for (int l = 0; l < net1.layers.Length; l++) // for every layer
-		{
-			weightValues = "";
-
-			for (int n = 0; n < net1.layers[l].neurons.Length; n++) // for every neuron
-			{
-				weightValues += " { ";
-				for (int w = 0; w < net1.layers[l].neurons[n].weights.Length; w++) // for every weight
-				{
-					weightValues += net1.layers[l].neurons[n].weights[w] + " ";
-				}
-				weightValues += " } ";
-			}
-			Debug.Log("Layer " + (l + 1) + ": " + net1.layers[l].neurons.Length + " Neurons { " + weightValues + "}");
-		}
+		layers = newArray;
+		getLayers = newArray;
 	}
 
 	void FixedUpdate()
@@ -135,12 +133,6 @@ public class NeuralController : MonoBehaviour
 			position = transform.position;
 			currentNeuralNet = networks[currentNeuralNetwork];
 		}
-
-		//if (!NNVisualization.Instance.netInitialized)
-		//{
-		//	NNVisualization.Instance.NewNetInitialization(currentNeuralNet);
-		//	NNVisualization.Instance.netInitialized = true;
-		//}
 	}
 	
 	void Update () {
@@ -149,6 +141,7 @@ public class NeuralController : MonoBehaviour
 			if (resetNetWork)
 			{
 				ResetNetwork();
+				NNVisualization.Instance.NewNetInitialization(networks[0]);
 				resetNetWork = false;
 			}
 
@@ -169,19 +162,21 @@ public class NeuralController : MonoBehaviour
 			}
 
 			// Speed cap
-			//if (carController.Velocity * 3.6f < 70f)
-			//	points[currentNeuralNetwork] += 0.1f;
+			if (carController.Velocity * 3.6f < 80f)
+				points[currentNeuralNetwork] += 10f * Time.deltaTime;
 
-			// Anti Wobble rewards
 			wobbleTimer += Time.deltaTime;
 			
 			if (wobbleTimer >= 0.2f)
 			{
-				if(lastSteerAngle > carController.wheels[0].collider.steerAngle - 1f || lastSteerAngle < carController.wheels[0].collider.steerAngle + 1f)
+				// if not wobbling
+				if(lastSteerAngle > carController.wheels[0].collider.steerAngle - 3 || lastSteerAngle < carController.wheels[0].collider.steerAngle + 3)
 				{
-					wobbleBonus += Time.deltaTime;
+					antiWobbleBonus += Time.deltaTime;
+					points[currentNeuralNetwork] += antiWobbleBonus * 5;
+					antiWobbleBonus = 0;
 				}
-
+			
 				lastSteerAngle = carController.wheels[0].collider.steerAngle;
 				wobbleTimer = 0;
 			}
@@ -194,6 +189,8 @@ public class NeuralController : MonoBehaviour
 	{
 		if (aIController.steeringMode == AIController.SteeringMode.NeuralNet && aIController.aiControllerActive)
 		{
+			aIController.lapTimer = 0;
+
 			if (results[1] > 0.3f) // If there is an impact while high motor torque
 			{
 				// decrease weight on motor torque neuron
@@ -206,11 +203,11 @@ public class NeuralController : MonoBehaviour
 			switch (fitnessMeasure)
 			{
 				case FitnessMeasure.distance2byTime:
-					points[currentNeuralNetwork] += wobbleBonus * 300;
+					
 					points[currentNeuralNetwork] *= points[currentNeuralNetwork];
 					points[currentNeuralNetwork] /= driveTime;
-					if (heavyImpacts != 0)
-						points[currentNeuralNetwork] /= heavyImpacts;
+					//if (heavyImpacts != 0)
+					//	points[currentNeuralNetwork] /= heavyImpacts;
 					//points[currentNeuralNetwork] *= brakePoints;
 					break;
 				case FitnessMeasure.distanceByTime:
@@ -226,11 +223,13 @@ public class NeuralController : MonoBehaviour
 			//brakePoints = 0;
 			driveTime = 0;
 			//Debug.Log("Wobble Bonus" + wobbleBonus);
-			wobbleBonus = 0;
+			antiWobbleBonus = 0;
 
 			//now we reproduce
 			if (currentNeuralNetwork == population - 1)
 			{
+				
+
 				double maxValue = points[0];
 				int maxIndex = 0;
 
@@ -242,21 +241,31 @@ public class NeuralController : MonoBehaviour
 					{
 						maxIndex = i;
 						maxValue = points[i];
+						if (maxValue < 0)
+							maxValue = 0;
 					}
 				}
 
-				Debug.Log("first parent is " + maxIndex);
+				scoreManager.AddScoreEntry(generation, (int)maxValue); // Best score from this generation
+
+				Debug.Log("first parent is has " + maxValue + " points");
 
 				if (points[maxIndex] > bestDistance)
 				{
-
 					bestDistance = (float)points[maxIndex];
-
 				}
+
+				if (points[maxIndex] > currentSessionBestScore)
+				{
+					currentSessionBestScore = (int)points[maxIndex];
+				}
+
 
 				points[maxIndex] = -10;
 
 				Network mother = networks[maxIndex];
+
+				
 
 				//Set best current Network
 
@@ -273,7 +282,7 @@ public class NeuralController : MonoBehaviour
 					}
 				}
 
-				Debug.Log("second parent is " + maxIndex);
+				Debug.Log("second parent is has " + maxValue + " points");
 
 				points[maxIndex] = -10;
 
@@ -281,7 +290,7 @@ public class NeuralController : MonoBehaviour
 
 
 				networks[0] = mother; // Best network goes directly into the next generation unmutated
-				points[0] = 0;
+				points[0] = 0; 
 
 				for (int i = 1; i < population; i++)
 				{
@@ -292,7 +301,9 @@ public class NeuralController : MonoBehaviour
 
 				generation++;
 				Debug.Log("generation " + generation + " is born");
-
+				
+				
+				
 				//because we increment it at the beginning, that's why -1
 				currentNeuralNetwork = -1;
 			}
@@ -312,7 +323,5 @@ public class NeuralController : MonoBehaviour
         transform.rotation = startRotation;
 		aIController.currentWayPoint = 0;
     }
-
-	
 }
 
